@@ -12,6 +12,6 @@ public class Board : MonoBehaviour
 
 	void Update () 
 	{
-		Destroy(board[0, 0]);
+
     }
 }

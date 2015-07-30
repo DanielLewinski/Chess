@@ -8,6 +8,7 @@ public class Field : MonoBehaviour
 
 	public bool isVacant = true;
 	public bool isLegal = false;
+	public bool isCapturedByOpponent = false;
 
 	Renderer materialRenderer;
 
