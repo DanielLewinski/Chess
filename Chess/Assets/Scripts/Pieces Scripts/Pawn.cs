@@ -5,6 +5,11 @@ public class Pawn : MonoBehaviour
 {
 	public bool wasMoved = false;
 
+	//for En Passant move
+	public uint? turnOfDoublePush = null;
+	public bool canBePassed = false;
+	GameObject passablePawn;
+
 	Vector3 moveVector;
 	Vector3[] captureVector = new Vector3[2];
 	int promotionGoal;
@@ -30,7 +35,17 @@ public class Pawn : MonoBehaviour
 	
 	void Update () 
 	{
-	
+		//consider a function doing that
+		if (turnOfDoublePush != null)
+		{
+			if (Game.turnsTaken - turnOfDoublePush < 2)
+				canBePassed = true;
+			else
+			{
+				canBePassed = false;
+				turnOfDoublePush = null;
+			}
+		}
 	}
 
 	void OnMouseDown()
@@ -52,9 +67,12 @@ public class Pawn : MonoBehaviour
 				if (!wasMoved)
 				{
 					actualPosition += moveVector;
-					field = Board.board[(int)actualPosition.x, (int)actualPosition.y].GetComponent<Field>();
-					if (field.HoldedPiece == null)
-						field.isLegal = true;
+					if (Game.isInRange(actualPosition))
+					{
+						field = Board.board[(int)actualPosition.x, (int)actualPosition.y].GetComponent<Field>();
+						if (field.HoldedPiece == null)
+							field.isLegal = true;
+					}
 				}
             }
 		}
@@ -63,14 +81,53 @@ public class Pawn : MonoBehaviour
 		{
 			actualPosition = transform.position;
 			actualPosition += direction;
-			if(Game.isInRange(actualPosition))
-			{
-				Field field = Board.board[(int)actualPosition.x, (int)actualPosition.y].GetComponent<Field>();
-				if (field.isCapturedByOpponent)
-					field.isLegal = true;
 
-			}
+			if(!CheckEnPassant(actualPosition))
+				if(Game.isInRange(actualPosition))
+				{
+					Field field = Board.board[(int)actualPosition.x, (int)actualPosition.y].GetComponent<Field>();
+					if (field.isCapturedByOpponent)
+						field.isLegal = true;
+
+				}
 		}
 	}
 
+	bool CheckEnPassant(Vector3 targetPosition)
+	{
+		Vector3 passablePosition;
+		if (GetComponent<Piece>().isWhite)
+			passablePosition = new Vector3(targetPosition.x, targetPosition.y - 1, 0);
+		else
+			passablePosition = new Vector3(targetPosition.x, targetPosition.y + 1, 0);
+		Debug.Log(passablePosition.x + " " + passablePosition.y);
+		Field passableField = Board.board[(int)passablePosition.x, (int)passablePosition.y].GetComponent<Field>();
+		if (passableField.HoldedPiece != null)
+			if (passableField.HoldedPiece.GetComponent<Piece>().isPawn)
+				if (passableField.HoldedPiece.GetComponent<Pawn>().canBePassed)
+				{
+					passablePawn = passableField.HoldedPiece;
+					Board.board[(int)targetPosition.x, (int)targetPosition.y].GetComponent<Field>().isLegal = true; //always vacant
+					return true;
+				}
+		return false;
+	}
+
+	public void UpdatePawnStatus(Vector3 targetPosition)
+	{
+		if(!wasMoved && (Mathf.Abs(targetPosition.y - transform.position.y) == 2))
+		{
+			canBePassed = true;
+			turnOfDoublePush = Game.turnsTaken;
+		}
+
+		if(passablePawn != null)
+		{
+			if( Mathf.Abs(targetPosition.y - passablePawn.transform.position.y) == 1)
+			{
+				Board.board[(int)passablePawn.transform.position.x, (int)passablePawn.transform.position.y].GetComponent<Field>().Capture();
+			}
+		}
+		wasMoved = true;
+	}
 }

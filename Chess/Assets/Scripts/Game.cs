@@ -4,7 +4,7 @@ using System.Collections;
 public class Game : MonoBehaviour 
 {
 	public static bool isWhitesTurn = true;
-
+	public static uint turnsTaken = 0;
 
 	void Start () 
 	{
@@ -19,9 +19,9 @@ public class Game : MonoBehaviour
 
 	static void UpdateFieldsStatus()
 	{
-		//GameObject[] fields;
-		//fields = GameObject.FindGameObjectsWithTag("Field");
-		foreach (GameObject field in Board.board)
+		GameObject[] fields;
+		fields = GameObject.FindGameObjectsWithTag("Field");
+		foreach (GameObject field in fields)
 		{
 			Field currentField = field.GetComponent<Field>();
 			currentField.CheckIfEnemy();
@@ -30,6 +30,7 @@ public class Game : MonoBehaviour
 
 	public static void NextTurn()
 	{
+		++turnsTaken;
 		isWhitesTurn = !isWhitesTurn;
 		UpdateFieldsStatus();
 

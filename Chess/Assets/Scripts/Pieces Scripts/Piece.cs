@@ -41,7 +41,7 @@ public class Piece : MonoBehaviour
 			if (targetField.isLegal)
 			{
 				if (isPawn)
-					GetComponent<Pawn>().wasMoved = true;
+					GetComponent<Pawn>().UpdatePawnStatus(target);
 
 				Field currentField = Board.board[(int)transform.position.x, (int)transform.position.y].GetComponent<Field>();
 				currentField.HoldedPiece = null;

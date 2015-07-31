@@ -46,7 +46,6 @@ public class Field : MonoBehaviour
 	{
 		if (HoldedPiece != null)
 		{
-			Debug.Log(HoldedPiece.GetComponent<Piece>().isWhite ^ Game.isWhitesTurn);
 			if (HoldedPiece.GetComponent<Piece>().isWhite ^ Game.isWhitesTurn)
 				isCapturedByOpponent = true;
 			else
