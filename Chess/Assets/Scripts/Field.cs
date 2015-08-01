@@ -7,7 +7,6 @@ public class Field : MonoBehaviour
 	public Material legalMaterial;
 
 	public bool isLegal = false;
-	public bool isCapturedByOpponent = false;
 
 	public GameObject HoldedPiece = null;
 
@@ -39,24 +38,6 @@ public class Field : MonoBehaviour
 				HoldedPiece = piece;
 				break;
 			}
-		CheckIfEnemy();
 	}
 
-	public void CheckIfEnemy()
-	{
-		if (HoldedPiece != null)
-		{
-			if (HoldedPiece.GetComponent<Piece>().isWhite ^ Game.isWhitesTurn)
-				isCapturedByOpponent = true;
-			else
-				isCapturedByOpponent = false;
-		}
-	}
-	public void Capture()
-	{
-		if(isCapturedByOpponent)
-		{
-			Destroy(HoldedPiece);
-		}
-	}
 }

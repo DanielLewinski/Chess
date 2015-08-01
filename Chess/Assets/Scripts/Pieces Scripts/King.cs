@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class King : MonoBehaviour 
 {
@@ -19,8 +20,9 @@ public class King : MonoBehaviour
 	void Start()
 	{
 		piece = gameObject.GetComponent<Piece>();
-		piece.directions = directions;
+		piece.moveDirections = directions;
 		piece.isRepetitive = false;
+		piece.isKing = true;
 	}
 
 	void Update () 

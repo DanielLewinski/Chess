@@ -1,13 +1,16 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 //Do not use this script on pawn
 
 public class Piece : MonoBehaviour 
 {
-	public Vector3[] directions;
+	public Vector3[] moveDirections;
 	public bool isRepetitive;
 	public bool isWhite = true;
 	public bool isPawn = false;
+	public bool isKing = false;
+
 
 	void Start () 
 	{
@@ -21,7 +24,13 @@ public class Piece : MonoBehaviour
 	void OnMouseDown()
 	{
 		if (!(Game.isWhitesTurn ^ isWhite) && !isPawn)
-			GetLegalMoves();
+		{
+			//AvoidCheck( GetLegalMoves());
+			List<Field> legalmoves = GetLegalMoves();
+			print(legalmoves.Count);
+			AvoidCheck(legalmoves);
+
+		}
 	}
 
 	void OnMouseUp()
@@ -47,7 +56,9 @@ public class Piece : MonoBehaviour
 				currentField.HoldedPiece = null;
 
 				transform.position = target;
-				targetField.Capture();
+				if(targetField.HoldedPiece != null)
+					if (targetField.HoldedPiece.GetComponent<Piece>().isWhite ^ isWhite)
+						Destroy(targetField.HoldedPiece);
 				targetField.HoldedPiece = gameObject;
 
 				Game.NextTurn();
@@ -61,9 +72,10 @@ public class Piece : MonoBehaviour
 		Game.CleanBoard();
 	}
 
-	void GetLegalMoves()
+	public List<Field> GetLegalMoves()
 	{
-		foreach (Vector3 direction in directions)
+		List<Field> legalMoves = new List<Field>();
+		foreach (Vector3 direction in moveDirections)
 		{
 			Vector3 actualPosition = transform.position;
 			actualPosition += direction;
@@ -72,11 +84,17 @@ public class Piece : MonoBehaviour
 				Field field = Board.board[(int)actualPosition.x, (int)actualPosition.y].GetComponent<Field>();
 
 				if (field.HoldedPiece == null)
-					field.isLegal = true;
+				{
+					//field.isLegal = true;
+					legalMoves.Add(field);
+				}
 				else
 				{
-					if (field.isCapturedByOpponent)
-						field.isLegal = true;
+					if (field.HoldedPiece.GetComponent<Piece>().isWhite ^ isWhite)
+					{
+						//field.isLegal = true;
+						legalMoves.Add(field);
+					}
 					break;
 				}
 
@@ -86,7 +104,95 @@ public class Piece : MonoBehaviour
 				actualPosition += direction;
 			}
 		}
+		return legalMoves;
 	}
 
-	
+	public List<GameObject> FindAttackers()
+	{
+		List<GameObject> attackers = new List<GameObject>();
+		
+		Vector3[] attackDirections = new Vector3[] {
+			new Vector3(1,0,0),
+			new Vector3(1,-1,0),
+			new Vector3(0,-1,0),
+			new Vector3(-1,-1,0),
+			new Vector3(-1,0,0),
+			new Vector3(-1,1,0),
+			new Vector3(0,1,0),
+			new Vector3(1,1,0),
+			new Vector3(1,2,0),
+			new Vector3(2,1,0),
+			new Vector3(2,-1,0),
+			new Vector3(1,-2,0),
+			new Vector3(-1,-2,0),
+			new Vector3(-2,-1,0),
+			new Vector3(-2,1,0),
+			new Vector3(-1,2,0)
+													};
+
+		foreach(Vector3 direction in attackDirections)
+		{
+			Vector3 consideredPosition = transform.position + direction;
+			Field ownedField = Board.board[(int)transform.position.x, (int)transform.position.y].GetComponent<Field>();
+			List<Field> attackingFields = new List<Field>();
+			while(Game.isInRange(consideredPosition))
+			{
+				Field consideredField = Board.board[(int)consideredPosition.x, (int)consideredPosition.y].GetComponent<Field>();
+				if( consideredField.HoldedPiece != null)
+				{
+					Piece consideredPiece = consideredField.HoldedPiece.GetComponent<Piece>();
+					if (consideredPiece.isWhite ^ isWhite)
+					{
+						if (!consideredPiece.isPawn)
+							attackingFields = consideredPiece.GetLegalMoves();
+						else
+						{
+							consideredField.HoldedPiece.GetComponent<Pawn>().GetLegalMoves(); //apply to pawns
+							attackingFields = consideredField.HoldedPiece.GetComponent<Pawn>().legalMoves;
+						}
+
+						if (attackingFields.Contains(ownedField))
+						{
+							attackers.Add(consideredField.HoldedPiece);
+						}
+					}
+					break;
+				}
+				if (Mathf.Abs(direction.x) == 2 || Mathf.Abs(direction.y) == 2)
+					break;
+				consideredPosition += direction;
+			}
+		}
+		return attackers;
+	}
+
+	public int AvoidCheck(List<Field> targetFields)
+	{
+		Field ownedField = Board.board[(int)transform.position.x, (int)transform.position.y].GetComponent<Field>();
+		int availableMoves = 0;
+		Vector3 originalPosition = transform.position;
+
+        foreach (Field consideredField in targetFields)
+		{
+			GameObject capturedPiece = consideredField.HoldedPiece;
+
+			consideredField.HoldedPiece = gameObject;
+			ownedField.HoldedPiece = null;
+			if (isKing)
+				transform.position = new Vector3(consideredField.transform.position.x, consideredField.transform.position.y, 0);
+
+			if (!Game.CheckIfCheck())
+			{
+				consideredField.isLegal = true;
+				++availableMoves;
+			}
+
+			consideredField.HoldedPiece = capturedPiece;
+			ownedField.HoldedPiece = gameObject;
+			transform.position = originalPosition;
+
+		}
+		return availableMoves;
+	}
 }
+   

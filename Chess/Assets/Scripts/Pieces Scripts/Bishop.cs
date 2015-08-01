@@ -15,7 +15,7 @@ public class Bishop : MonoBehaviour
 	void Start()
 	{
 		piece = gameObject.GetComponent<Piece>();
-		piece.directions = directions;
+		piece.moveDirections = directions;
 		piece.isRepetitive = true;
 	}
 

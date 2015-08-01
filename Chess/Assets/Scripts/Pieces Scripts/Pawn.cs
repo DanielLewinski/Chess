@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class Pawn : MonoBehaviour 
 {
@@ -8,7 +9,8 @@ public class Pawn : MonoBehaviour
 	//for En Passant move
 	public uint? turnOfDoublePush = null;
 	public bool canBePassed = false;
-	GameObject passablePawn;
+	public GameObject passablePawn;
+	public List<Field> legalMoves = new List<Field>();
 
 	Vector3 moveVector;
 	Vector3[] captureVector = new Vector3[2];
@@ -31,6 +33,7 @@ public class Pawn : MonoBehaviour
 			captureVector[1] = new Vector3(-1, -1, 0);
 			promotionGoal = 0;
 		}
+		GetComponent<Piece>().isPawn = true;
 	}
 	
 	void Update () 
@@ -50,12 +53,16 @@ public class Pawn : MonoBehaviour
 
 	void OnMouseDown()
 	{
-		if (!(Game.isWhitesTurn ^ GetComponent<Piece>().isWhite)) 
-		GetLegalMoves();
+		if (!(Game.isWhitesTurn ^ GetComponent<Piece>().isWhite))
+		{
+			GetLegalMoves();
+			AvoidCheck(legalMoves);
+		}
 	}
 
-	void GetLegalMoves()
+	public void GetLegalMoves()
 	{
+		legalMoves.Clear();
 		Vector3 actualPosition = transform.position;
 		actualPosition += moveVector;
 		if(Game.isInRange(actualPosition))
@@ -63,7 +70,7 @@ public class Pawn : MonoBehaviour
 			Field field = Board.board[(int)actualPosition.x, (int)actualPosition.y].GetComponent<Field>();
 			if (field.HoldedPiece == null)
 			{
-				field.isLegal = true;
+				legalMoves.Add(field);
 				if (!wasMoved)
 				{
 					actualPosition += moveVector;
@@ -71,7 +78,7 @@ public class Pawn : MonoBehaviour
 					{
 						field = Board.board[(int)actualPosition.x, (int)actualPosition.y].GetComponent<Field>();
 						if (field.HoldedPiece == null)
-							field.isLegal = true;
+							legalMoves.Add(field);
 					}
 				}
             }
@@ -86,8 +93,9 @@ public class Pawn : MonoBehaviour
 				if(Game.isInRange(actualPosition))
 				{
 					Field field = Board.board[(int)actualPosition.x, (int)actualPosition.y].GetComponent<Field>();
-					if (field.isCapturedByOpponent)
-						field.isLegal = true;
+					if(field.HoldedPiece != null)
+						if (field.HoldedPiece.GetComponent<Piece>().isWhite ^ GetComponent<Piece>().isWhite)
+							legalMoves.Add(field);
 
 				}
 		}
@@ -100,16 +108,18 @@ public class Pawn : MonoBehaviour
 			passablePosition = new Vector3(targetPosition.x, targetPosition.y - 1, 0);
 		else
 			passablePosition = new Vector3(targetPosition.x, targetPosition.y + 1, 0);
-		Debug.Log(passablePosition.x + " " + passablePosition.y);
-		Field passableField = Board.board[(int)passablePosition.x, (int)passablePosition.y].GetComponent<Field>();
-		if (passableField.HoldedPiece != null)
-			if (passableField.HoldedPiece.GetComponent<Piece>().isPawn)
-				if (passableField.HoldedPiece.GetComponent<Pawn>().canBePassed)
-				{
-					passablePawn = passableField.HoldedPiece;
-					Board.board[(int)targetPosition.x, (int)targetPosition.y].GetComponent<Field>().isLegal = true; //always vacant
-					return true;
-				}
+		if (Game.isInRange(passablePosition))
+		{
+			Field passableField = Board.board[(int)passablePosition.x, (int)passablePosition.y].GetComponent<Field>();
+			if (passableField.HoldedPiece != null)
+				if (passableField.HoldedPiece.GetComponent<Piece>().isPawn)
+					if (passableField.HoldedPiece.GetComponent<Pawn>().canBePassed)
+					{
+						passablePawn = passableField.HoldedPiece;
+						legalMoves.Add(Board.board[(int)targetPosition.x, (int)targetPosition.y].GetComponent<Field>());
+                        return true;
+					}
+		}
 		return false;
 	}
 
@@ -125,9 +135,56 @@ public class Pawn : MonoBehaviour
 		{
 			if( Mathf.Abs(targetPosition.y - passablePawn.transform.position.y) == 1)
 			{
-				Board.board[(int)passablePawn.transform.position.x, (int)passablePawn.transform.position.y].GetComponent<Field>().Capture();
+				Destroy(passablePawn);
 			}
 		}
 		wasMoved = true;
+	}
+
+	public int AvoidCheck(List<Field> targetFields)
+	{
+		Field ownedField = Board.board[(int)transform.position.x, (int)transform.position.y].GetComponent<Field>();
+		int availableMoves = 0;
+		Vector3 originalPosition = transform.position;
+
+		Field passableField;
+
+		foreach (Field consideredField in targetFields)
+		{
+			GameObject capturedPiece = consideredField.HoldedPiece;
+
+			consideredField.HoldedPiece = gameObject;
+			ownedField.HoldedPiece = null;
+
+			if (passablePawn != null)
+				if (Mathf.Abs(consideredField.transform.position.y - passablePawn.transform.position.y) == 1)
+				{
+					passableField = Board.board[(int)passablePawn.transform.position.x, (int)passablePawn.transform.position.y].GetComponent<Field>();
+					passableField.HoldedPiece = null;
+
+					
+				}
+			print(transform.position.x + " " + transform.position.y);
+			if (!Game.CheckIfCheck())
+			{
+				consideredField.isLegal = true;
+				++availableMoves;
+			}
+
+			consideredField.HoldedPiece = capturedPiece;
+			ownedField.HoldedPiece = gameObject;
+			transform.position = originalPosition;
+
+			if (passablePawn != null)
+				if (Mathf.Abs(consideredField.transform.position.y - passablePawn.transform.position.y) == 1)
+				{
+					passableField = Board.board[(int)passablePawn.transform.position.x, (int)passablePawn.transform.position.y].GetComponent<Field>();
+					passableField.HoldedPiece = passablePawn;
+
+
+				}
+			
+		}
+		return availableMoves;
 	}
 }
