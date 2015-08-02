@@ -29,7 +29,7 @@ public class Field : MonoBehaviour
 	
 	}
 
-	void InitVacancy()
+	public void InitVacancy()
 	{
 		GameObject[] pieces = GameObject.FindGameObjectsWithTag("Piece");
 		foreach (GameObject piece in pieces)

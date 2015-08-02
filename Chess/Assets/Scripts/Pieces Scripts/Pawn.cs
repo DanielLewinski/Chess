@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class Pawn : MonoBehaviour 
 {
-	public bool wasMoved = false;
+	//public bool GetComponent<Piece>().wasMoved = false;
 
 	//for En Passant move
 	public uint? turnOfDoublePush = null;
@@ -14,7 +14,11 @@ public class Pawn : MonoBehaviour
 
 	Vector3 moveVector;
 	Vector3[] captureVector = new Vector3[2];
-	int promotionGoal;
+
+	//for promotion
+	public int promotionGoal;
+	public GameObject[] promotionPieces = new GameObject[4];
+	public bool canBePromoted = false;
 
 
 	void Start () 
@@ -49,6 +53,7 @@ public class Pawn : MonoBehaviour
 				turnOfDoublePush = null;
 			}
 		}
+
 	}
 
 	void OnMouseDown()
@@ -71,7 +76,7 @@ public class Pawn : MonoBehaviour
 			if (field.HoldedPiece == null)
 			{
 				legalMoves.Add(field);
-				if (!wasMoved)
+				if (!GetComponent<Piece>().wasMoved)
 				{
 					actualPosition += moveVector;
 					if (Game.isInRange(actualPosition))
@@ -125,7 +130,7 @@ public class Pawn : MonoBehaviour
 
 	public void UpdatePawnStatus(Vector3 targetPosition)
 	{
-		if(!wasMoved && (Mathf.Abs(targetPosition.y - transform.position.y) == 2))
+		if(!GetComponent<Piece>().wasMoved && (Mathf.Abs(targetPosition.y - transform.position.y) == 2))
 		{
 			canBePassed = true;
 			turnOfDoublePush = Game.turnsTaken;
@@ -138,7 +143,7 @@ public class Pawn : MonoBehaviour
 				Destroy(passablePawn);
 			}
 		}
-		wasMoved = true;
+		//GetComponent<Piece>().wasMoved = true;
 	}
 
 	public int AvoidCheck(List<Field> targetFields)
@@ -164,7 +169,7 @@ public class Pawn : MonoBehaviour
 
 					
 				}
-			print(transform.position.x + " " + transform.position.y);
+			
 			if (!Game.CheckIfCheck())
 			{
 				consideredField.isLegal = true;
@@ -186,5 +191,38 @@ public class Pawn : MonoBehaviour
 			
 		}
 		return availableMoves;
+	}
+
+	void OnGUI()
+	{
+		if (canBePromoted)
+		{
+			if (GUI.Button(new Rect(100, 100, 50, 50), promotionPieces[0].GetComponent<SpriteRenderer>().sprite.texture))
+			{
+				InsertPromotedPiece(0);
+			}
+			else if (GUI.Button(new Rect(100, 200, 50, 50), promotionPieces[1].GetComponent<SpriteRenderer>().sprite.texture))
+			{
+				InsertPromotedPiece(1);
+			}
+			else if (GUI.Button(new Rect(100, 300, 50, 50), promotionPieces[2].GetComponent<SpriteRenderer>().sprite.texture))
+			{
+				InsertPromotedPiece(2);
+			}
+			else if (GUI.Button(new Rect(100, 400, 50, 50), promotionPieces[3].GetComponent<SpriteRenderer>().sprite.texture))
+			{
+				InsertPromotedPiece(3);
+			}
+		}
+	}
+
+	void InsertPromotedPiece(int index)
+	{
+		canBePromoted = false;
+		Game.canSwitchTurns = true;
+		Field ownedField = Board.board[(int)transform.position.x, (int)transform.position.y].GetComponent<Field>();
+		ownedField.HoldedPiece = Instantiate(promotionPieces[index], transform.position, transform.rotation) as GameObject;
+		GetComponent<Piece>().isAlive = false;
+		Destroy(gameObject);
 	}
 }

@@ -10,6 +10,8 @@ public class Piece : MonoBehaviour
 	public bool isWhite = true;
 	public bool isPawn = false;
 	public bool isKing = false;
+	public bool isAlive = true;
+	public bool wasMoved = false;
 
 
 	void Start () 
@@ -25,10 +27,9 @@ public class Piece : MonoBehaviour
 	{
 		if (!(Game.isWhitesTurn ^ isWhite) && !isPawn)
 		{
-			//AvoidCheck( GetLegalMoves());
-			List<Field> legalmoves = GetLegalMoves();
-			print(legalmoves.Count);
-			AvoidCheck(legalmoves);
+			AvoidCheck( GetLegalMoves());
+			//List<Field> legalmoves = GetLegalMoves();
+			//AvoidCheck(legalmoves);
 
 		}
 	}
@@ -52,16 +53,34 @@ public class Piece : MonoBehaviour
 				if (isPawn)
 					GetComponent<Pawn>().UpdatePawnStatus(target);
 
+				wasMoved = true;
+
 				Field currentField = Board.board[(int)transform.position.x, (int)transform.position.y].GetComponent<Field>();
 				currentField.HoldedPiece = null;
 
 				transform.position = target;
-				if(targetField.HoldedPiece != null)
+
+				if (targetField.HoldedPiece != null)
 					if (targetField.HoldedPiece.GetComponent<Piece>().isWhite ^ isWhite)
+					{
+						targetField.HoldedPiece.GetComponent<Piece>().isAlive = false; //I have no idea why it must be here but it works. Otherwise holdedPiece changes back to what it was
 						Destroy(targetField.HoldedPiece);
+					}
 				targetField.HoldedPiece = gameObject;
 
-				Game.NextTurn();
+				if (isPawn)
+				{
+					if (transform.position.y == GetComponent<Pawn>().promotionGoal)
+						GetComponent<Pawn>().canBePromoted = true;
+					else
+						Game.canSwitchTurns = true;
+				}
+				else
+				{
+					//Game.NextTurn();
+					Game.canSwitchTurns = true;
+				}
+
 			}
 			else
 				Debug.Log("Illegal");

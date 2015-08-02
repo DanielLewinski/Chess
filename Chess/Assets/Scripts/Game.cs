@@ -7,28 +7,29 @@ public class Game : MonoBehaviour
 	public static bool isWhitesTurn = true;
 	public static uint turnsTaken = 0;
 	public static bool isPlayerInCheck = false;
+	public static bool canSwitchTurns = false;
 
 	void Start () 
 	{
-		CheckIfCheck();
+		CheckIfGameOver();
 	}
 	
 	void Update () 
 	{
-		if (Input.GetKeyDown(KeyCode.Space))
-		{
-			foreach (GameObject piece in GameObject.Find("KingWhite").GetComponent<Piece>().FindAttackers())
-				Destroy(piece);
-		}
+		if (canSwitchTurns)
+			NextTurn();
 	}
 
 	public static void NextTurn()
 	{
+		canSwitchTurns = false;
 		++turnsTaken;
 		isWhitesTurn = !isWhitesTurn;
 		isPlayerInCheck = false;
 
 		CheckIfGameOver();
+
+		Castling.LoadRow();
 
 		Camera.main.transform.Rotate(new Vector3(0, 0, 180));
 		GameObject[] pieces = GameObject.FindGameObjectsWithTag("Piece");
@@ -62,7 +63,7 @@ public class Game : MonoBehaviour
 		if (attackers.Count > 0)
 		{
 			isPlayerInCheck = true;
-			Debug.Log("SingleCheck");
+			//Debug.Log("SingleCheck");
 			return true;
 		}
 		else
@@ -76,9 +77,10 @@ public class Game : MonoBehaviour
 	{
 		GameObject[] pieces = GameObject.FindGameObjectsWithTag("Piece");
 		bool isAnyMovePossible = false;
-		foreach(GameObject piece in pieces)
+		
+		foreach (GameObject piece in pieces)
 		{
-			if (!(isWhitesTurn ^ piece.GetComponent<Piece>().isWhite))
+			if (!(isWhitesTurn ^ piece.GetComponent<Piece>().isWhite) && piece.GetComponent<Piece>().isAlive)
 			{
 				Piece consideredPiece = piece.GetComponent<Piece>();
 				if(consideredPiece.isPawn)
@@ -87,17 +89,20 @@ public class Game : MonoBehaviour
 					if (consideredPiece.GetComponent<Pawn>().AvoidCheck(consideredPiece.GetComponent<Pawn>().legalMoves) > 0)
 					{
 						isAnyMovePossible = true;
+						CleanBoard();
 						break;
 					}
 				}
 				else if(consideredPiece.AvoidCheck( consideredPiece.GetLegalMoves()) > 0)
 				{
 					isAnyMovePossible = true;
+					CleanBoard();
 					break;
+					
 				}
 			}   
 		}
-		CheckIfCheck();
+		
 		if (!isAnyMovePossible)
 		{
 			if (isPlayerInCheck)
