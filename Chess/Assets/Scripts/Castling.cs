@@ -92,11 +92,11 @@ public class Castling : MonoBehaviour
 	void OnGUI()
 	{
 		if (isQueensideAllowed)
-			if (GUI.Button(new Rect(650, 50, 150, 50), "Queenside Castling"))
+			if (GUI.Button(new Rect(750, 50, 150, 50), "Queenside Castling"))
 				DoCastling(0,3,2);
 
 		if (isKingsideAllowed)
-			if (GUI.Button(new Rect(650, 100, 150, 50), "Kingside Castling"))
+			if (GUI.Button(new Rect(750, 100, 150, 50), "Kingside Castling"))
 				DoCastling(7, 5, 6);
 	}
 

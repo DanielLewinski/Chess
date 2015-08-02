@@ -8,10 +8,12 @@ public class Game : MonoBehaviour
 	public static uint turnsTaken = 0;
 	public static bool isPlayerInCheck = false;
 	public static bool canSwitchTurns = false;
+	public static string[] players = new string[2] { "Biały", "Czarny" };
 
 	void Start () 
 	{
-		CheckIfGameOver();
+		CheckIfGameOver(); //for the sake of tests
+
 	}
 	
 	void Update () 
@@ -35,6 +37,7 @@ public class Game : MonoBehaviour
 		GameObject[] pieces = GameObject.FindGameObjectsWithTag("Piece");
 		foreach (GameObject piece in pieces)
 			piece.transform.Rotate(new Vector3(0, 0, 180));
+		SwapNames();
 	}
 
 	public static bool isInRange(Vector3 position)
@@ -110,5 +113,20 @@ public class Game : MonoBehaviour
 			else
 				print("StaleMate");
 		}
+	}
+
+	void OnGUI()
+	{
+		GUIStyle nameStyle = new GUIStyle(GUI.skin.GetStyle("label"));
+		nameStyle.fontSize = 25;
+		GUI.Label(new Rect(400, 550, 200, 40), players[0], nameStyle);
+		GUI.Label(new Rect(400, 10, 200, 40), players[1], nameStyle);
+	}
+
+	static void SwapNames()
+	{
+		string temporaryString = players[0];
+		players[0] = players[1];
+		players[1] = temporaryString;
 	}
 }
