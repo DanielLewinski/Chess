@@ -16,6 +16,7 @@ public class Piece : MonoBehaviour
 
 	void Start () 
 	{
+
 	}
 	
 	void Update () 
@@ -28,9 +29,6 @@ public class Piece : MonoBehaviour
 		if (!(Game.isWhitesTurn ^ isWhite) && !isPawn)
 		{
 			AvoidCheck( GetLegalMoves());
-			//List<Field> legalmoves = GetLegalMoves();
-			//AvoidCheck(legalmoves);
-
 		}
 	}
 
@@ -65,6 +63,7 @@ public class Piece : MonoBehaviour
 					{
 						targetField.HoldedPiece.GetComponent<Piece>().isAlive = false; //I have no idea why it must be here but it works. Otherwise holdedPiece changes back to what it was
 						Destroy(targetField.HoldedPiece);
+						Game.turnOfLastCapture = Game.turnsTaken;
 					}
 				targetField.HoldedPiece = gameObject;
 
@@ -77,16 +76,13 @@ public class Piece : MonoBehaviour
 				}
 				else
 				{
-					//Game.NextTurn();
 					Game.canSwitchTurns = true;
 				}
 
 			}
 			else
-				Debug.Log("Illegal");
+				Game.message = "Niedozwolony ruch";
 		}
-		else
-			Debug.Log("No movement");
 
 		Game.CleanBoard();
 	}
@@ -104,14 +100,12 @@ public class Piece : MonoBehaviour
 
 				if (field.HoldedPiece == null)
 				{
-					//field.isLegal = true;
 					legalMoves.Add(field);
 				}
 				else
 				{
 					if (field.HoldedPiece.GetComponent<Piece>().isWhite ^ isWhite)
 					{
-						//field.isLegal = true;
 						legalMoves.Add(field);
 					}
 					break;
@@ -166,7 +160,7 @@ public class Piece : MonoBehaviour
 							attackingFields = consideredPiece.GetLegalMoves();
 						else
 						{
-							consideredField.HoldedPiece.GetComponent<Pawn>().GetLegalMoves(); //apply to pawns
+							consideredField.HoldedPiece.GetComponent<Pawn>().GetLegalMoves();
 							attackingFields = consideredField.HoldedPiece.GetComponent<Pawn>().legalMoves;
 						}
 

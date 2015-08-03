@@ -6,20 +6,29 @@ public class Game : MonoBehaviour
 {
 	public static bool isWhitesTurn = true;
 	public static uint turnsTaken = 0;
+	public static uint turnOfLastCapture = 1; //or pawn movement
 	public static bool isPlayerInCheck = false;
 	public static bool canSwitchTurns = false;
 	public static string[] players = new string[2] { "Biały", "Czarny" };
+	public static string message = "";
+	public static bool isThisTheEnd = false;
 
 	void Start () 
 	{
-		CheckIfGameOver(); //for the sake of tests
-
+		isWhitesTurn = true;
+		turnsTaken = 0;
+		turnOfLastCapture = 1;
+		isPlayerInCheck = false;
+		canSwitchTurns = false;
+		isThisTheEnd = false;
 	}
 	
 	void Update () 
 	{
 		if (canSwitchTurns)
 			NextTurn();
+		if (isThisTheEnd)
+			StartCoroutine(TerminateGame());
 	}
 
 	public static void NextTurn()
@@ -29,7 +38,10 @@ public class Game : MonoBehaviour
 		isWhitesTurn = !isWhitesTurn;
 		isPlayerInCheck = false;
 
+		
+
 		CheckIfGameOver();
+		
 
 		Castling.LoadRow();
 
@@ -38,6 +50,8 @@ public class Game : MonoBehaviour
 		foreach (GameObject piece in pieces)
 			piece.transform.Rotate(new Vector3(0, 0, 180));
 		SwapNames();
+
+		
 	}
 
 	public static bool isInRange(Vector3 position)
@@ -78,15 +92,27 @@ public class Game : MonoBehaviour
 
 	static void CheckIfGameOver()
 	{
+		FiftyMoveRule();
+		CheckMate();
+	}
+
+	static void FiftyMoveRule()
+	{
+		if (turnsTaken - turnOfLastCapture >= 50)
+			print("Draw");
+	}
+
+	static void CheckMate()
+	{
 		GameObject[] pieces = GameObject.FindGameObjectsWithTag("Piece");
 		bool isAnyMovePossible = false;
-		
+
 		foreach (GameObject piece in pieces)
 		{
 			if (!(isWhitesTurn ^ piece.GetComponent<Piece>().isWhite) && piece.GetComponent<Piece>().isAlive)
 			{
 				Piece consideredPiece = piece.GetComponent<Piece>();
-				if(consideredPiece.isPawn)
+				if (consideredPiece.isPawn)
 				{
 					consideredPiece.GetComponent<Pawn>().GetLegalMoves();
 					if (consideredPiece.GetComponent<Pawn>().AvoidCheck(consideredPiece.GetComponent<Pawn>().legalMoves) > 0)
@@ -96,22 +122,26 @@ public class Game : MonoBehaviour
 						break;
 					}
 				}
-				else if(consideredPiece.AvoidCheck( consideredPiece.GetLegalMoves()) > 0)
+				else if (consideredPiece.AvoidCheck(consideredPiece.GetLegalMoves()) > 0)
 				{
 					isAnyMovePossible = true;
 					CleanBoard();
 					break;
-					
+
 				}
-			}   
+			}
 		}
-		
+		if (CheckIfCheck())
+			message = "Check";
+
 		if (!isAnyMovePossible)
 		{
 			if (isPlayerInCheck)
-				print("CheckMate"); //TODO: Do this on GUI
+				message = "Szach-Mat";
 			else
-				print("StaleMate");
+				message = "Pat";
+
+			isThisTheEnd = true;
 		}
 	}
 
@@ -121,6 +151,22 @@ public class Game : MonoBehaviour
 		nameStyle.fontSize = 25;
 		GUI.Label(new Rect(400, 550, 200, 40), players[0], nameStyle);
 		GUI.Label(new Rect(400, 10, 200, 40), players[1], nameStyle);
+		GUI.Label(new Rect(750, 200, 200, 100), message, nameStyle);
+
+		if (message != "")
+			StartCoroutine(Fading());
+    }
+
+	static IEnumerator Fading()
+	{
+		yield return new WaitForSeconds(1);
+		message = "";
+	}
+
+	static IEnumerator TerminateGame()
+	{
+		yield return new WaitForSeconds(1);
+		Application.LoadLevel("Menu");
 	}
 
 	static void SwapNames()

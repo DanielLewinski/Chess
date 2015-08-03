@@ -42,7 +42,6 @@ public class Pawn : MonoBehaviour
 	
 	void Update () 
 	{
-		//consider a function doing that
 		if (turnOfDoublePush != null)
 		{
 			if (Game.turnsTaken - turnOfDoublePush < 2)
@@ -143,7 +142,7 @@ public class Pawn : MonoBehaviour
 				Destroy(passablePawn);
 			}
 		}
-		//GetComponent<Piece>().wasMoved = true;
+		Game.turnOfLastCapture = Game.turnsTaken;
 	}
 
 	public int AvoidCheck(List<Field> targetFields)

@@ -91,14 +91,22 @@ public class Castling : MonoBehaviour
 
 	void OnGUI()
 	{
+		GUIStyle buttonStyle = new GUIStyle(GUI.skin.GetStyle("button"));
+		buttonStyle.fontSize = 18;
 		if (isQueensideAllowed)
-			if (GUI.Button(new Rect(750, 50, 150, 50), "Queenside Castling"))
+			if (GUI.Button(new Rect(750, 50, 150, 50), "Roszada długa", buttonStyle))
 				DoCastling(0,3,2);
 
 		if (isKingsideAllowed)
-			if (GUI.Button(new Rect(750, 100, 150, 50), "Kingside Castling"))
+			if (GUI.Button(new Rect(750, 100, 150, 50), "Roszada krótka", buttonStyle))
 				DoCastling(7, 5, 6);
-	}
+
+		if (GUI.Button(new Rect(750, 500, 150, 50), "Koniec gry", buttonStyle))
+		{
+			Game.message = Game.players[0] + " poddał się";
+			Game.isThisTheEnd = true;
+		}
+    }
 
 	void DoCastling(uint rookBegin, uint rookEnd, uint kingEnd)
 	{
