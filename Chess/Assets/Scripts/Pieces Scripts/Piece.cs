@@ -40,12 +40,10 @@ public class Piece : MonoBehaviour
 
 	[RPC] void ChangePosition(Vector3 target)
 	{
-		print("Moved");
 		transform.position = target;
 	}
 	[RPC] void SwitchTurns()
 	{
-		print("Next turn");
 		Game.canSwitchTurns = true;
 	}
 	[RPC] void CaptureField(Vector3 target)

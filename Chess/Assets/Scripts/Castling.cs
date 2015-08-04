@@ -39,7 +39,7 @@ public class Castling : MonoBehaviour
 		for (uint iterator = 0; iterator < 8; ++iterator)
 			row[iterator] = Board.board[iterator, rowIndex].GetComponent<Field>();
 
-		isQueensideAllowed = CheckCastling(new uint[5] {4,3,2,1,0 });
+		isQueensideAllowed = CheckCastling(new uint[5] {4,3,2,1,0 }) ;
 		isKingsideAllowed = CheckCastling(new uint[4] { 4, 5, 6, 7 });
 	}
 
@@ -93,22 +93,33 @@ public class Castling : MonoBehaviour
 	{
 		GUIStyle buttonStyle = new GUIStyle(GUI.skin.GetStyle("button"));
 		buttonStyle.fontSize = 18;
-		if (isQueensideAllowed)
-			if (GUI.Button(new Rect(750, 50, 150, 50), "Roszada długa", buttonStyle))
-				DoCastling(0,3,2);
 
-		if (isKingsideAllowed)
+		if (isQueensideAllowed && (!Game.isOnline || GetComponent<NetworkView>().isMine))
+			if (GUI.Button(new Rect(750, 50, 150, 50), "Roszada długa", buttonStyle))
+			{
+				if (Game.isOnline)
+					GetComponent<NetworkView>().RPC("DoCastling", RPCMode.OthersBuffered, 0, 3, 2);
+				DoCastling(0, 3, 2);
+			}
+
+		if (isKingsideAllowed && (!Game.isOnline || GetComponent<NetworkView>().isMine))
 			if (GUI.Button(new Rect(750, 100, 150, 50), "Roszada krótka", buttonStyle))
+			{
+				if (Game.isOnline)
+					GetComponent<NetworkView>().RPC("DoCastling", RPCMode.OthersBuffered, 7,5,6);
 				DoCastling(7, 5, 6);
+			}
 
 		if (GUI.Button(new Rect(750, 500, 150, 50), "Koniec gry", buttonStyle))
 		{
 			Game.message = Game.players[0] + " poddał się";
 			Game.isThisTheEnd = true;
+			if (Game.isOnline)
+				Network.Disconnect(200);
 		}
     }
 
-	void DoCastling(uint rookBegin, uint rookEnd, uint kingEnd)
+	[RPC]void DoCastling(uint rookBegin, uint rookEnd, uint kingEnd)
 	{
 		row[4].HoldedPiece.transform.position = new Vector3(row[kingEnd].transform.position.x, row[kingEnd].transform.position.y, 0);
 		row[kingEnd].HoldedPiece = row[4].HoldedPiece;
@@ -120,4 +131,6 @@ public class Castling : MonoBehaviour
 
 		Game.canSwitchTurns = true;
 	}
+
+	
 }

@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class Game : MonoBehaviour 
+public class Game : MonoBehaviour
 {
 	public static bool isWhitesTurn = true;
 	public static uint turnsTaken = 0;
@@ -15,7 +15,7 @@ public class Game : MonoBehaviour
 	public static bool isOnline = false;
 
 
-	void Start () 
+	void Start()
 	{
 		isWhitesTurn = true;
 		turnsTaken = 0;
@@ -24,8 +24,8 @@ public class Game : MonoBehaviour
 		canSwitchTurns = false;
 		isThisTheEnd = false;
 	}
-	
-	void Update () 
+
+	void Update()
 	{
 		if (canSwitchTurns)
 			NextTurn();
@@ -33,27 +33,28 @@ public class Game : MonoBehaviour
 			StartCoroutine(TerminateGame());
 	}
 
-	public static void NextTurn()
+	public static void RotateBoard()
+	{
+		Camera.main.transform.Rotate(new Vector3(0, 0, 180));
+		GameObject[] pieces = GameObject.FindGameObjectsWithTag("Piece");
+		foreach (GameObject piece in pieces)
+			piece.transform.Rotate(new Vector3(0, 0, 180));
+		SwapNames();
+	}
+
+	static void NextTurn()
 	{
 		canSwitchTurns = false;
 		++turnsTaken;
 		isWhitesTurn = !isWhitesTurn;
 		isPlayerInCheck = false;
 
-		
-
 		CheckIfGameOver();
-		
 
 		Castling.LoadRow();
 
-		Camera.main.transform.Rotate(new Vector3(0, 0, 180));
-		GameObject[] pieces = GameObject.FindGameObjectsWithTag("Piece");
-		foreach (GameObject piece in pieces)
-			piece.transform.Rotate(new Vector3(0, 0, 180));
-		SwapNames();
-
-		
+		if (!isOnline)
+			RotateBoard();
 	}
 
 	public static bool isInRange(Vector3 position)
@@ -78,11 +79,10 @@ public class Game : MonoBehaviour
 			king = GameObject.Find("KingBlack").GetComponent<Piece>();
 
 		List<GameObject> attackers = king.FindAttackers();
-	
+
 		if (attackers.Count > 0)
 		{
 			isPlayerInCheck = true;
-			//Debug.Log("SingleCheck");
 			return true;
 		}
 		else
@@ -101,7 +101,12 @@ public class Game : MonoBehaviour
 	static void FiftyMoveRule()
 	{
 		if (turnsTaken - turnOfLastCapture >= 50)
-			print("Draw");
+		{
+			message = "Remis - 50 ruchów";
+			isThisTheEnd = true;
+			if (isOnline)
+				Network.Disconnect(200);
+		}
 	}
 
 	static void CheckMate()
@@ -144,6 +149,8 @@ public class Game : MonoBehaviour
 				message = "Pat";
 
 			isThisTheEnd = true;
+			if (isOnline)
+				Network.Disconnect(200);
 		}
 	}
 
@@ -157,7 +164,7 @@ public class Game : MonoBehaviour
 
 		if (message != "")
 			StartCoroutine(Fading());
-    }
+	}
 
 	static IEnumerator Fading()
 	{
@@ -178,5 +185,4 @@ public class Game : MonoBehaviour
 		players[1] = temporaryString;
 	}
 
-	
 }

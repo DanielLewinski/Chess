@@ -93,17 +93,15 @@ public class Pawn : MonoBehaviour
 			actualPosition = transform.position;
 			actualPosition += direction;
 
-			//if (!CheckEnPassant(actualPosition))
 			CheckEnPassant(actualPosition);
-				if (Game.isInRange(actualPosition))
-				{
-					print("Weszło");
-					Field field = Board.board[(int)actualPosition.x, (int)actualPosition.y].GetComponent<Field>();
-					if (field.HoldedPiece != null)
-						if (field.HoldedPiece.GetComponent<Piece>().isWhite ^ GetComponent<Piece>().isWhite)
-							legalMoves.Add(field);
+			if (Game.isInRange(actualPosition))
+			{
+				Field field = Board.board[(int)actualPosition.x, (int)actualPosition.y].GetComponent<Field>();
+				if (field.HoldedPiece != null)
+					if (field.HoldedPiece.GetComponent<Piece>().isWhite ^ GetComponent<Piece>().isWhite)
+						legalMoves.Add(field);
 
-				}
+			}
 		}
 	}
 
@@ -232,10 +230,25 @@ public class Pawn : MonoBehaviour
 
 	void InsertPromotedPiece(int index)
 	{
+		GameObject newPiece = new GameObject();
+		if (Game.isOnline)
+		{
+			newPiece = Network.Instantiate(promotionPieces[index], transform.position, transform.rotation, 0) as GameObject;
+			GetComponent<NetworkView>().RPC("OvertakeField", RPCMode.OthersBuffered, newPiece.GetComponent<NetworkView>().viewID);
+		}
+		else
+			newPiece = Instantiate(promotionPieces[index], transform.position, transform.rotation) as GameObject;
+
+		OvertakeField(newPiece.GetComponent<NetworkView>().viewID);
+	}
+
+	[RPC] void OvertakeField(NetworkViewID id)
+	{
+		Field ownedField = Board.board[(int)transform.position.x, (int)transform.position.y].GetComponent<Field>();
+		ownedField.HoldedPiece = NetworkView.Find(id).gameObject;
+
 		canBePromoted = false;
 		Game.canSwitchTurns = true;
-		Field ownedField = Board.board[(int)transform.position.x, (int)transform.position.y].GetComponent<Field>();
-		ownedField.HoldedPiece = Instantiate(promotionPieces[index], transform.position, transform.rotation) as GameObject;
 		GetComponent<Piece>().isAlive = false;
 		Destroy(gameObject);
 	}
