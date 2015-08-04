@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 //Do not use this script on pawn
 
-public class Piece : MonoBehaviour 
+public class Piece : MonoBehaviour
 {
 	public Vector3[] moveDirections;
 	public bool isRepetitive;
@@ -14,21 +14,21 @@ public class Piece : MonoBehaviour
 	public bool wasMoved = false;
 
 
-	void Start () 
+	void Start()
 	{
 
 	}
-	
-	void Update () 
+
+	void Update()
 	{
-	
+
 	}
 
 	void OnMouseDown()
 	{
-		if (!(Game.isWhitesTurn ^ isWhite) && !isPawn)
+		if (!(Game.isWhitesTurn ^ isWhite) && !isPawn && (!Game.isOnline || GetComponent<NetworkView>().isMine))
 		{
-			AvoidCheck( GetLegalMoves());
+			AvoidCheck(GetLegalMoves());
 		}
 	}
 
@@ -37,6 +37,48 @@ public class Piece : MonoBehaviour
 		if (!(Game.isWhitesTurn ^ isWhite))
 			MakeMove();
 	}
+
+	[RPC] void ChangePosition(Vector3 target)
+	{
+		print("Moved");
+		transform.position = target;
+	}
+	[RPC] void SwitchTurns()
+	{
+		print("Next turn");
+		Game.canSwitchTurns = true;
+	}
+	[RPC] void CaptureField(Vector3 target)
+	{
+		Field targetField = Board.board[(int)target.x, (int)target.y].GetComponent<Field>();
+		if (targetField.HoldedPiece != null)
+			if (targetField.HoldedPiece.GetComponent<Piece>().isWhite ^ isWhite)
+			{
+				targetField.HoldedPiece.GetComponent<Piece>().isAlive = false; //I have no idea why it must be here but it works. Otherwise holdedPiece changes back to what it was
+				Destroy(targetField.HoldedPiece);
+				Game.turnOfLastCapture = Game.turnsTaken;
+			}
+		targetField.HoldedPiece = gameObject;
+	}
+
+	[RPC] void FreeCurrentField()
+	{
+		Field currentField = Board.board[(int)transform.position.x, (int)transform.position.y].GetComponent<Field>();
+		currentField.HoldedPiece = null;
+	}
+	
+	[RPC] void UpdatePieceStatus(Vector3 target)
+	{
+		if (isPawn)
+			GetComponent<Pawn>().UpdatePawnStatus(target);
+
+		wasMoved = true;
+	}
+	[RPC] void PromotePawn()
+	{
+		GetComponent<Pawn>().canBePromoted = true;
+	}
+
 
 	void MakeMove()
 	{
@@ -48,35 +90,44 @@ public class Piece : MonoBehaviour
 			Field targetField = Board.board[(int)target.x, (int)target.y].GetComponent<Field>();
 			if (targetField.isLegal)
 			{
-				if (isPawn)
-					GetComponent<Pawn>().UpdatePawnStatus(target);
+				if(Game.isOnline)
+					GetComponent<NetworkView>().RPC("UpdatePieceStatus", RPCMode.OthersBuffered, target);
+				UpdatePieceStatus(target);
 
-				wasMoved = true;
+				if (Game.isOnline)
+					GetComponent<NetworkView>().RPC("FreeCurrentField", RPCMode.OthersBuffered);
+				FreeCurrentField();
 
-				Field currentField = Board.board[(int)transform.position.x, (int)transform.position.y].GetComponent<Field>();
-				currentField.HoldedPiece = null;
+				//transform.position = target;
+				if (Game.isOnline)
+					GetComponent<NetworkView>().RPC("ChangePosition", RPCMode.OthersBuffered, target);
+				ChangePosition(target);
 
-				transform.position = target;
 
-				if (targetField.HoldedPiece != null)
-					if (targetField.HoldedPiece.GetComponent<Piece>().isWhite ^ isWhite)
-					{
-						targetField.HoldedPiece.GetComponent<Piece>().isAlive = false; //I have no idea why it must be here but it works. Otherwise holdedPiece changes back to what it was
-						Destroy(targetField.HoldedPiece);
-						Game.turnOfLastCapture = Game.turnsTaken;
-					}
-				targetField.HoldedPiece = gameObject;
+				if (Game.isOnline)
+					GetComponent<NetworkView>().RPC("CaptureField", RPCMode.OthersBuffered, target);
+				CaptureField(target);
 
 				if (isPawn)
 				{
 					if (transform.position.y == GetComponent<Pawn>().promotionGoal)
-						GetComponent<Pawn>().canBePromoted = true;
+					{
+						if(Game.isOnline)
+							GetComponent<NetworkView>().RPC("PromotePawn", RPCMode.OthersBuffered);
+						PromotePawn();
+					}
 					else
-						Game.canSwitchTurns = true;
+					{
+						if(Game.isOnline)
+							GetComponent<NetworkView>().RPC("SwitchTurns", RPCMode.OthersBuffered);
+						SwitchTurns();
+					}
 				}
 				else
 				{
-					Game.canSwitchTurns = true;
+					if (Game.isOnline)
+						GetComponent<NetworkView>().RPC("SwitchTurns", RPCMode.OthersBuffered);
+					SwitchTurns();
 				}
 
 			}

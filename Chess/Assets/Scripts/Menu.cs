@@ -7,7 +7,6 @@ public class Menu : MonoBehaviour
 
 	void Start () 
 	{
-	
 	}
 	
 	void Update () 
@@ -36,7 +35,15 @@ public class Menu : MonoBehaviour
 		{
 			buttonStyle.fontSize = 50;
 			if (GUI.Button(new Rect(375, 300, 200, 100), "Start", buttonStyle))
+			{
+				Game.isOnline = false;
 				wasStartClicked = true;
-		}
+			}
+			if (GUI.Button(new Rect(375, 400, 200, 100), "Online", buttonStyle))
+			{
+				Game.isOnline = true;
+				Application.LoadLevel("Connection");
+			}
+        }
 	}
 }

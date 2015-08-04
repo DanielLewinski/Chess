@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class Pawn : MonoBehaviour 
+public class Pawn : MonoBehaviour
 {
 	//public bool GetComponent<Piece>().wasMoved = false;
 
@@ -21,9 +21,9 @@ public class Pawn : MonoBehaviour
 	public bool canBePromoted = false;
 
 
-	void Start () 
+	void Start()
 	{
-		if(GetComponent<Piece>().isWhite)
+		if (GetComponent<Piece>().isWhite)
 		{
 			moveVector = new Vector3(0, 1, 0);
 			captureVector[0] = new Vector3(1, 1, 0);
@@ -39,8 +39,8 @@ public class Pawn : MonoBehaviour
 		}
 		GetComponent<Piece>().isPawn = true;
 	}
-	
-	void Update () 
+
+	void Update()
 	{
 		if (turnOfDoublePush != null)
 		{
@@ -57,7 +57,7 @@ public class Pawn : MonoBehaviour
 
 	void OnMouseDown()
 	{
-		if (!(Game.isWhitesTurn ^ GetComponent<Piece>().isWhite))
+		if (!(Game.isWhitesTurn ^ GetComponent<Piece>().isWhite) && (!Game.isOnline || GetComponent<NetworkView>().isMine))
 		{
 			GetLegalMoves();
 			AvoidCheck(legalMoves);
@@ -69,7 +69,7 @@ public class Pawn : MonoBehaviour
 		legalMoves.Clear();
 		Vector3 actualPosition = transform.position;
 		actualPosition += moveVector;
-		if(Game.isInRange(actualPosition))
+		if (Game.isInRange(actualPosition))
 		{
 			Field field = Board.board[(int)actualPosition.x, (int)actualPosition.y].GetComponent<Field>();
 			if (field.HoldedPiece == null)
@@ -85,7 +85,7 @@ public class Pawn : MonoBehaviour
 							legalMoves.Add(field);
 					}
 				}
-            }
+			}
 		}
 
 		foreach (Vector3 direction in captureVector)
@@ -93,16 +93,24 @@ public class Pawn : MonoBehaviour
 			actualPosition = transform.position;
 			actualPosition += direction;
 
-			if(!CheckEnPassant(actualPosition))
-				if(Game.isInRange(actualPosition))
+			//if (!CheckEnPassant(actualPosition))
+			CheckEnPassant(actualPosition);
+				if (Game.isInRange(actualPosition))
 				{
+					print("Weszło");
 					Field field = Board.board[(int)actualPosition.x, (int)actualPosition.y].GetComponent<Field>();
-					if(field.HoldedPiece != null)
+					if (field.HoldedPiece != null)
 						if (field.HoldedPiece.GetComponent<Piece>().isWhite ^ GetComponent<Piece>().isWhite)
 							legalMoves.Add(field);
 
 				}
 		}
+	}
+
+	[RPC] void SetPassablePawn(Vector3 passablePosition)
+	{
+		Field passableField = Board.board[(int)passablePosition.x, (int)passablePosition.y].GetComponent<Field>();
+		passablePawn = passableField.HoldedPiece;
 	}
 
 	bool CheckEnPassant(Vector3 targetPosition)
@@ -119,7 +127,11 @@ public class Pawn : MonoBehaviour
 				if (passableField.HoldedPiece.GetComponent<Piece>().isPawn)
 					if (passableField.HoldedPiece.GetComponent<Pawn>().canBePassed)
 					{
-						passablePawn = passableField.HoldedPiece;
+						//passablePawn = passableField.HoldedPiece;
+						if (Game.isOnline)
+							GetComponent<NetworkView>().RPC("SetPassablePawn", RPCMode.OthersBuffered, passablePosition);
+						SetPassablePawn(passablePosition);
+
 						legalMoves.Add(Board.board[(int)targetPosition.x, (int)targetPosition.y].GetComponent<Field>());
                         return true;
 					}
@@ -139,7 +151,10 @@ public class Pawn : MonoBehaviour
 		{
 			if( Mathf.Abs(targetPosition.y - passablePawn.transform.position.y) == 1)
 			{
+				Board.board[(int)passablePawn.transform.position.x, (int)passablePawn.transform.position.y].GetComponent<Field>().HoldedPiece = null;
+				passablePawn.GetComponent<Piece>().isAlive = false;
 				Destroy(passablePawn);
+				passablePawn = null;
 			}
 		}
 		Game.turnOfLastCapture = Game.turnsTaken;
@@ -194,7 +209,7 @@ public class Pawn : MonoBehaviour
 
 	void OnGUI()
 	{
-		if (canBePromoted)
+		if (canBePromoted && (!Game.isOnline || GetComponent<NetworkView>().isMine))
 		{
 			if (GUI.Button(new Rect(100, 100, 50, 50), promotionPieces[0].GetComponent<SpriteRenderer>().sprite.texture))
 			{

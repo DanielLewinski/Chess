@@ -12,6 +12,8 @@ public class Game : MonoBehaviour
 	public static string[] players = new string[2] { "Biały", "Czarny" };
 	public static string message = "";
 	public static bool isThisTheEnd = false;
+	public static bool isOnline = false;
+
 
 	void Start () 
 	{
@@ -175,4 +177,6 @@ public class Game : MonoBehaviour
 		players[0] = players[1];
 		players[1] = temporaryString;
 	}
+
+	
 }
